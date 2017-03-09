@@ -1,0 +1,29 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core"  xmlns:f="/lib/form">
+    <!--
+      This jelly script is used for per-project configuration.
+
+      See global.jelly for a general discussion about jelly script.
+    -->
+
+    <!--
+      Creates a text field that shows the value of the "name" property.
+      When submitted, it will be passed to the corresponding constructor parameter.
+    -->
+    <f:entry title="${%Scan Type}" field="profile">
+    <f:select/>
+    </f:entry>
+    <f:entry title="${%Scan Target }" field="target">
+        <f:select/>
+    </f:entry>
+    <f:entry title="${%Fail the build if threat level is }" field="threat">
+        <f:select />
+    </f:entry>
+    <f:entry field="stopScan">
+        <f:checkbox field="stopScan" default="true"/>
+        ${%Stop the scan when build fails}
+    </f:entry>
+    <f:entry title="${%Generate Report }" field="repTemp">
+        <f:select />
+    </f:entry>
+</j:jelly>

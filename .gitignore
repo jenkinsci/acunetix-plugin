@@ -1,0 +1,10 @@
+.idea
+# IntelliJ files
+*.iml
+*.iws
+*.ipr
+.idea
+out
+pom.xsd
+target
+work

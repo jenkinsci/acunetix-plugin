@@ -1,5 +1,5 @@
-# Acunetix Plugin for Jenkins
-The Acunetix Plugin for Jenkins plugin allows you to trigger automated Acunetix scans as part of your web application’s build process inside of Jenkins.
+# Acunetix Jenkins Plugin
+The Acunetix Jenkins Plugin allows you to trigger automated Acunetix scans as part of your web application’s build process inside of Jenkins.
 
 ---
 

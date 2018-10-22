@@ -20,6 +20,7 @@ import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+import org.antlr.v4.runtime.misc.NotNull;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -256,6 +257,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
 
         private String getgApiKeyID() {return gApiKeyID;}
 
+        @NotNull
         private String getgApiKey() {
             StandardCredentials credentials = null;
             try {
@@ -345,7 +347,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                 @AncestorInPath Item item) {
             StandardListBoxModel result = new StandardListBoxModel();
             if (item == null) {
-                if (!Jenkins.getInstanceOrNull().hasPermission(Jenkins.ADMINISTER)) {
+                if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER)) {
                     return result.includeCurrentValue(gApiKeyID);
                 }
             } else {
@@ -361,15 +363,6 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
             return result
                     .includeMatchingAs(ACL.SYSTEM, Jenkins.getInstance(), StringCredentials.class,
                             Collections.<DomainRequirement> emptyList(), CredentialsMatchers.allOf(CredentialsMatchers.instanceOf(StringCredentials.class)));
-        }
-
-        class ConnectionException extends RuntimeException {
-            public ConnectionException() {
-                super(SR.getString("cannot.connect.to.application"));
-            }
-            public ConnectionException(String message) {
-                super(message);
-            }
         }
     }
 }

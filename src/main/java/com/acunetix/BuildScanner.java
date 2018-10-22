@@ -257,9 +257,15 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
         private String getgApiKeyID() {return gApiKeyID;}
 
         private String getgApiKey() {
-            StandardCredentials credentials = CredentialsMatchers.firstOrNull(
-                    lookupCredentials(StandardCredentials.class, (Item) null, ACL.SYSTEM, new ArrayList<DomainRequirement>()),
-                    CredentialsMatchers.withId(gApiKeyID));
+            StandardCredentials credentials = null;
+            try {
+                credentials = CredentialsMatchers.firstOrNull(
+                        lookupCredentials(StandardCredentials.class, (Item) null, ACL.SYSTEM, new ArrayList<DomainRequirement>()),
+                        CredentialsMatchers.withId(gApiKeyID));
+            }
+            catch (NullPointerException e) {
+                throw new ConnectionException(SR.getString("please.set.the.api.key"));
+            }
             if (credentials != null) {
                 if (credentials instanceof StringCredentials) {
                     return ((StringCredentials) credentials).getSecret().getPlainText();
@@ -357,7 +363,14 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                             Collections.<DomainRequirement> emptyList(), CredentialsMatchers.allOf(CredentialsMatchers.instanceOf(StringCredentials.class)));
         }
 
-
+        class ConnectionException extends RuntimeException {
+            public ConnectionException() {
+                super(SR.getString("cannot.connect.to.application"));
+            }
+            public ConnectionException(String message) {
+                super(message);
+            }
+        }
     }
 }
 

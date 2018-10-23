@@ -25,6 +25,7 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.verb.POST;
 
 import javax.annotation.Nonnull;
 import javax.net.ssl.SSLHandshakeException;
@@ -211,8 +212,10 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
         public DescriptorImpl() {
             load();
         }
-
-        public FormValidation doTestConnection(@QueryParameter("gApiUrl") final String ApiUrl) {
+        @POST
+        public FormValidation doTestConnection(@QueryParameter("gApiUrl") final String ApiUrl,
+                                               @QueryParameter("gApiKey") final String apiKey) {
+            Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
             try {
                 if (ApiUrl.length() == 0)
                     return FormValidation.error(SR.getString("please.set.the.api.url"));

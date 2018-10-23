@@ -20,7 +20,6 @@ import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-import org.antlr.v4.runtime.misc.NotNull;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -257,7 +256,6 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
 
         private String getgApiKeyID() {return gApiKeyID;}
 
-        @NotNull
         private String getgApiKey() {
             StandardCredentials credentials = null;
             try {
@@ -266,7 +264,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                         CredentialsMatchers.withId(gApiKeyID));
             }
             catch (NullPointerException e) {
-                throw new ConnectionException(SR.getString("please.set.the.api.key"));
+                throw new ConnectionException(SR.getString("api.key.not.set"));
             }
             if (credentials != null) {
                 if (credentials instanceof StringCredentials) {

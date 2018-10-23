@@ -1,5 +1,5 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
   <!--
     This Jelly script is used to produce the global configuration option.
 
@@ -16,8 +16,8 @@
     <f:entry title="${%Acunetix API URL}" field="gApiUrl">
       <f:textbox default="https://localhost:3443/api/v1" />
     </f:entry >
-    <f:entry title="${%API Key}" field="gApiKey">
-      <f:password />
+    <f:entry title="${%Acunetix API Key}" field="gApiKeyID">
+      <c:select/>
     </f:entry>
     <f:validateButton
             title="${%Test Connection}" progress="${%Connecting...}"

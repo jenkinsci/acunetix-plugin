@@ -1,11 +1,18 @@
 package com.acunetix;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractProject;
+import hudson.model.Item;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -13,6 +20,8 @@ import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -24,12 +33,14 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+
+import static com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials;
 
 
 public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildStep {
 
-    private final String apiUrl;
-    private final String apiKey;
     private final String profile;
     private final String target;
     private String targetName;
@@ -40,8 +51,6 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
 
     @DataBoundConstructor
     public BuildScanner(String profile, String target, String repTemp, String threat, Boolean stopScan) {
-        this.apiUrl = getDescriptor().getgApiUrl();
-        this.apiKey = getDescriptor().getgApiKey();
         this.profile = profile;
         this.target = target;
         this.repTemp = repTemp;
@@ -49,7 +58,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
         this.stopScan = stopScan;
 
         try {
-            Engine aac = new Engine(this.apiUrl, this.apiKey);
+            Engine aac = new Engine(getDescriptor().getgApiUrl(), getDescriptor().getgApiKey());
             this.targetName = aac.getTargetName(this.target);
             this.reportTemplateName = aac.getReportTemplateName(this.repTemp);
         } catch (IOException e) {
@@ -57,14 +66,6 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
         }
     }
 
-
-    private String getApiUrl() {
-        return apiUrl;
-    }
-
-    private String getApiKey() {
-        return apiKey;
-    }
 
     public String getProfile() {
         return profile;
@@ -105,7 +106,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
         final String NOREPORT = "no_report";
         final PrintStream listenerLogger = listener.getLogger();
 
-        Engine engine = new Engine(this.apiUrl, this.apiKey);
+        Engine engine = new Engine(getDescriptor().getgApiUrl(), getDescriptor().getgApiKey());
         String scanId = null;
         Boolean scanAbortedExternally = false;
         Boolean scanAbortedByUser = false;
@@ -188,7 +189,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                     listenerLogger.println(SR.getString("generating.0.report", getReportTemplateName()));
                     Thread.sleep(1000);
                     String downloadLink = engine.generateReport(scanId, repTemp, "scans");
-                    URL url = new URL(apiUrl);
+                    URL url = new URL(getDescriptor().getgApiUrl());
                     engine.doDownload(url.getProtocol() + "://" + url.getAuthority() + downloadLink, workspace.getRemote(), Integer.toString(build.getNumber()));
                 }
             } catch (InterruptedException | IOException e) {
@@ -206,7 +207,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<hudson.tasks.Builder> {
         private String gApiUrl;
-        private String gApiKey;
+        private String gApiKeyID;
 
         public DescriptorImpl() {
             load();
@@ -218,11 +219,8 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
             try {
                 if (ApiUrl.length() == 0)
                     return FormValidation.error(SR.getString("please.set.the.api.url"));
-                if (apiKey.length() == 0)
-                    return FormValidation.error(SR.getString("please.set.the.api.key"));
-                Engine apio = new Engine(ApiUrl, apiKey);
+                Engine apio = new Engine(ApiUrl, getgApiKey());
                 int respCode = apio.doTestConnection(ApiUrl + "/me");
-
                 if (respCode == 200) {
                     return FormValidation.ok(SR.getString("connected.successfully"));
                 }
@@ -250,22 +248,40 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
         @Override
         public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
             gApiUrl = formData.getString("gApiUrl");
-            gApiKey = formData.getString("gApiKey");
+            gApiKeyID = formData.getString("gApiKeyID");
             save();
             return super.configure(req, formData);
         }
 
-        public String getgApiUrl() {
+        private String getgApiUrl() {
             return gApiUrl;
         }
 
-        public String getgApiKey() {
-            return gApiKey;
+        private String getgApiKeyID() {return gApiKeyID;}
+
+        private String getgApiKey() {
+            StandardCredentials credentials = null;
+            try {
+                credentials = CredentialsMatchers.firstOrNull(
+                        lookupCredentials(StandardCredentials.class, (Item) null, ACL.SYSTEM, new ArrayList<DomainRequirement>()),
+                        CredentialsMatchers.withId(gApiKeyID));
+            }
+            catch (NullPointerException e) {
+                throw new ConnectionException(SR.getString("api.key.not.set"));
+            }
+            if (credentials != null) {
+                if (credentials instanceof StringCredentials) {
+                    return ((StringCredentials) credentials).getSecret().getPlainText();
+                }
+            }
+            throw new IllegalStateException("Could not find Acunetix API Key ID: " + gApiKeyID);
         }
+
+
 
         public ListBoxModel doFillProfileItems() throws IOException {
             ListBoxModel items = new ListBoxModel();
-            Engine apio = new Engine(gApiUrl, gApiKey);
+            Engine apio = new Engine(gApiUrl, getgApiKey());
             JSONArray jsa = apio.getScanningProfiles();
             for (int i = 0; i < jsa.size(); i++) {
                 JSONObject item = jsa.getJSONObject(i);
@@ -278,7 +294,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
 
         public ListBoxModel doFillTargetItems() throws IOException {
             ListBoxModel items = new ListBoxModel();
-            Engine apio = new Engine(gApiUrl, gApiKey);
+            Engine apio = new Engine(gApiUrl, getgApiKey());
             JSONArray jsa = apio.getTargets();
             for (int i = 0; i < jsa.size(); i++) {
                 JSONObject item = jsa.getJSONObject(i);
@@ -302,7 +318,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
 
         public ListBoxModel doFillRepTempItems() throws IOException {
             ListBoxModel items = new ListBoxModel();
-            Engine apio = new Engine(gApiUrl, gApiKey);
+            Engine apio = new Engine(gApiUrl, getgApiKey());
             JSONArray jsa = apio.getReportTemplates();
             items.add("Do not generate a report", "no_report");
             for (int i = 0; i < jsa.size(); i++) {
@@ -326,6 +342,28 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
             items.add("Medium or High", "Medium");
             items.add("Low, Medium or High", "Low");
             return items;
+        }
+
+        public ListBoxModel doFillGApiKeyIDItems(
+                @AncestorInPath Item item) {
+            StandardListBoxModel result = new StandardListBoxModel();
+            if (item == null) {
+                if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER)) {
+                    return result.includeCurrentValue(gApiKeyID);
+                }
+            } else {
+                if (!item.hasPermission(Item.EXTENDED_READ)
+                        && !item.hasPermission(CredentialsProvider.USE_ITEM)) {
+                    return result.includeCurrentValue(gApiKeyID);
+                }
+            }
+            if (gApiKeyID != null) {
+                result.includeMatchingAs(ACL.SYSTEM, Jenkins.getInstance(), StringCredentials.class,
+                        Collections.<DomainRequirement> emptyList(), CredentialsMatchers.allOf(CredentialsMatchers.withId(gApiKeyID)));
+            }
+            return result
+                    .includeMatchingAs(ACL.SYSTEM, Jenkins.getInstance(), StringCredentials.class,
+                            Collections.<DomainRequirement> emptyList(), CredentialsMatchers.allOf(CredentialsMatchers.instanceOf(StringCredentials.class)));
         }
     }
 }

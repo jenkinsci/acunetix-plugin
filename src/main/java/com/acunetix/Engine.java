@@ -331,3 +331,12 @@ public class Engine {
     }
 
 }
+
+class ConnectionException extends RuntimeException {
+    public ConnectionException() {
+        super(SR.getString("cannot.connect.to.application"));
+    }
+    public ConnectionException(String message) {
+        super(message);
+    }
+}

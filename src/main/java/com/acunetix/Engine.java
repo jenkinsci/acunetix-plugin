@@ -1,12 +1,12 @@
 package com.acunetix;
 
-import com.google.common.base.Charsets;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONNull;
 import net.sf.json.JSONObject;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.*;
@@ -85,28 +85,12 @@ public class Engine {
         }
     }
 
-    public String doDownload(String urlStr, String savePath, String buildNumber) throws IOException {
-        HttpsURLConnection connection = openConnection(urlStr, "GET", "text/html; charset=UTF-8");
-
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
-            // get the file name
-            String cd = connection.getHeaderField("Content-Disposition");
-            String fileName = null;
-            if (cd != null && cd.contains("=")) {
-                fileName = cd.split("=")[1].trim().replaceAll("\"", "");
-            }
-            String filePath = findAvailableFileName(savePath, buildNumber, fileName);
-            String inputLine;
-            try {
-                try (FileOutputStream dfile = new FileOutputStream(filePath)) {
-                    while ((inputLine = in.readLine()) != null) {
-                        dfile.write(inputLine.getBytes(Charsets.UTF_8));
-                    }
-                }
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-            return fileName;
+    public String getUrl(String apiUrl, String downloadLink) throws MalformedURLException {
+        URL url = new URL(apiUrl);
+        if (downloadLink.matches("^(http|https)://.*$")) {
+            return downloadLink;
+        } else {
+            return url.getProtocol() + "://" + url.getAuthority() + downloadLink;
         }
     }
 

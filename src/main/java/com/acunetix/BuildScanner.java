@@ -32,7 +32,6 @@ import javax.net.ssl.SSLHandshakeException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -210,8 +209,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                     listenerLogger.println(SR.getString("generating.0.report", getReportTemplateName()));
                     Thread.sleep(1000);
                     String downloadLink = engine.generateReport(scanId, repTemp, "scans");
-                    URL url = new URL(getDescriptor().getgApiUrl());
-                    engine.doDownload(url.getProtocol() + "://" + url.getAuthority() + downloadLink, workspace.getRemote(), Integer.toString(build.getNumber()));
+                    listenerLogger.print("\nScan report download link: " + engine.getUrl(getDescriptor().getgApiUrl(), downloadLink) + "\n");
                 }
             } catch (InterruptedException | IOException e) {
                 e.printStackTrace();

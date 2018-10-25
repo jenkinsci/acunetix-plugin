@@ -70,7 +70,6 @@ public class Engine {
         return connection;
     }
 
-
     private Resp doGet(String urlStr) throws IOException {
         HttpsURLConnection connection = openConnection(urlStr);
         try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
@@ -79,7 +78,6 @@ public class Engine {
             while ((inputLine = in.readLine()) != null) {
                 resbuf.append(inputLine);
             }
-
             Resp resp = new Resp();
             resp.respCode = connection.getResponseCode();
             resp.jso = JSONObject.fromObject(resbuf.toString());
@@ -224,6 +222,7 @@ public class Engine {
         JSONObject jso = new JSONObject();
         jso.put("target_id", targetId);
         jso.put("profile_id", scanningProfileId);
+        jso.put("user_authorized_to_scan", "yes");
         JSONObject jsoChild = new JSONObject();
         jsoChild.put("disable", false);
         jsoChild.put("start_date", JSONNull.getInstance());

@@ -5,10 +5,12 @@ import net.sf.json.JSONNull;
 import net.sf.json.JSONObject;
 
 import javax.net.ssl.HttpsURLConnection;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Paths;
 import java.util.*;
 
 
@@ -69,7 +71,7 @@ public class Engine {
     }
 
 
-    public Resp doGet(String urlStr) throws IOException {
+    private Resp doGet(String urlStr) throws IOException {
         HttpsURLConnection connection = openConnection(urlStr);
         try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
             String inputLine;
@@ -99,7 +101,7 @@ public class Engine {
         return connection.getResponseCode();
     }
 
-    public Resp doPost(String urlStr) throws IOException {
+    private Resp doPost(String urlStr) throws IOException {
         HttpsURLConnection connection = openConnection(urlStr,"POST");
         connection.setUseCaches(false);
         connection.setDoInput(true);
@@ -109,7 +111,7 @@ public class Engine {
         return resp;
     }
 
-    public Resp doPostLoc(String urlStr, String urlParams) throws IOException, NullPointerException {
+    private Resp doPostLoc(String urlStr, String urlParams) throws IOException, NullPointerException {
         HttpsURLConnection connection = openConnection(urlStr, "POST");
         connection.setUseCaches(false);
         connection.setDoInput(true);
@@ -130,17 +132,42 @@ public class Engine {
         return resp;
     }
 
-    public JSONArray getTargets() throws IOException {
-        Resp resp = doGet(apiUrl + "/targets");
-        if (resp.respCode == 200) {
-            return resp.jso.getJSONArray("targets");
+    private JSONArray getObjects(String objectName) throws IOException, NullPointerException {
+        JSONArray objects = null;
+        Integer cursor = 0;
+
+        while(cursor%100==0){
+            Resp resp = doGet(apiUrl + "/" + objectName + "?c=" + cursor);
+            if (resp.respCode != 200) {
+                throw new IOException(SR.getString("bad.response.0", resp.respCode));
+            }
+            if (objects == null){
+                objects = resp.jso.getJSONArray(objectName);
+            }
+            else {
+                objects.addAll(resp.jso.getJSONArray(objectName));
+            }
+            JSONObject pagination = resp.jso.getJSONObject("pagination");
+            if (pagination.size()>0) {
+                if (pagination.getString("next_cursor").equals("null")) {
+                    break;
+                }
+                cursor =  pagination.getInt("next_cursor");
+            }
+            else{
+                break;
+            }
         }
-        throw new IOException(SR.getString("bad.response.0", resp.respCode));
+        return objects;
     }
 
+    public JSONArray getTargets() throws IOException {
+        return getObjects("targets");
+    }
+
+
     public String getTargetName(String targetId) throws IOException {
-        JSONObject jso = doGet(apiUrl + "/targets").jso;
-        JSONArray targets = jso.getJSONArray("targets");
+        JSONArray targets = getTargets();
         for (int i = 0; i < targets.size(); i++) {
             JSONObject item = targets.getJSONObject(i);
             String target_id = item.getString("target_id");
@@ -161,11 +188,7 @@ public class Engine {
     }
 
     public JSONArray getScanningProfiles() throws IOException {
-        Resp resp = doGet(apiUrl + "/scanning_profiles");
-        if (resp.respCode == 200) {
-            return resp.jso.getJSONArray("scanning_profiles");
-        }
-        throw new IOException(SR.getString("bad.response.0", resp.respCode));
+        return getObjects("scanning_profiles");
     }
 
     public Boolean checkScanProfileExists(String profileId) throws IOException {
@@ -221,11 +244,7 @@ public class Engine {
 
 
     private JSONArray getScans() throws IOException {
-        Resp resp = doGet(apiUrl + "/scans");
-        if (resp.respCode == 200) {
-            return resp.jso.getJSONArray("scans");
-        }
-        throw new IOException(SR.getString("bad.response.0", resp.respCode));
+        return getObjects("scans");
     }
 
     public String getScanThreat(String scanId) throws IOException {
@@ -259,19 +278,17 @@ public class Engine {
     }
 
     public String getReportTemplateName(String reportTemplateId) throws IOException {
-        Resp resp = doGet(apiUrl + "/report_templates");
-        if (resp.respCode == 200) {
-            JSONArray jsa = resp.jso.getJSONArray("templates");
-            for (int i = 0; i < jsa.size(); i++) {
-                JSONObject item = jsa.getJSONObject(i);
-                if (item.getString("template_id").equals(reportTemplateId)) {
-                    return item.getString("name");
-                }
+        JSONArray jsa = getReportTemplates();
+        for (int i = 0; i < jsa.size(); i++) {
+            JSONObject item = jsa.getJSONObject(i);
+            if (item.getString("template_id").equals(reportTemplateId)) {
+                return item.getString("name");
             }
-            return null;
         }
-        throw new IOException(SR.getString("bad.response.0", resp.respCode));
+        return null;
     }
+
+
 
     private String getReportStatus(String reportId) throws IOException {
         JSONObject jso = doGet(apiUrl + "/reports/" + reportId).jso;
@@ -316,20 +333,6 @@ public class Engine {
         }
         return Arrays.asList(threatCategory.get(checkThreat)).contains(scanThreat);
     }
-
-    public String findAvailableFileName(String savePath, String buildNumber, String reportName) {
-        int i = 1;
-        while (true) {
-            String fileName = Paths.get(savePath, buildNumber + "_" + i + "_" + reportName).toString();
-            File f = new File(fileName);
-            if (f.exists()) {
-                i++;
-            } else {
-                return fileName;
-            }
-        }
-    }
-
 }
 
 class ConnectionException extends RuntimeException {

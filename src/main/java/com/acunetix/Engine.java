@@ -125,7 +125,7 @@ public class Engine {
         return resp;
     }
 
-    public Resp doPostLoc(String urlStr, String urlParams) throws IOException {
+    public Resp doPostLoc(String urlStr, String urlParams) throws IOException, NullPointerException {
         HttpsURLConnection connection = openConnection(urlStr, "POST");
         connection.setUseCaches(false);
         connection.setDoInput(true);
@@ -134,11 +134,15 @@ public class Engine {
         try (DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream())) {
             outputStream.writeBytes(urlParams);
         }
-
         String location = connection.getHeaderField("Location");
         Resp resp = new Resp();
         resp.respCode = connection.getResponseCode();
-        resp.respStr = location.substring(location.lastIndexOf("/") + 1);
+        try {
+            resp.respStr = location.substring(location.lastIndexOf("/") + 1);
+            } catch (NullPointerException e){
+            e.printStackTrace();
+                    throw new ConnectionException();
+            }
         return resp;
     }
 
@@ -178,6 +182,18 @@ public class Engine {
             return resp.jso.getJSONArray("scanning_profiles");
         }
         throw new IOException(SR.getString("bad.response.0", resp.respCode));
+    }
+
+    public Boolean checkScanProfileExists(String profileId) throws IOException {
+        JSONArray profiles = getScanningProfiles();
+        for (int i = 0; i < profiles.size(); i++) {
+            JSONObject item = profiles.getJSONObject(i);
+            String profile_id = item.getString("profile_id");
+            if (profile_id.equals(profileId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public Boolean checkScanExist(String scanId) {

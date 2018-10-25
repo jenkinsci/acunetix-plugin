@@ -117,8 +117,26 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
         Boolean bScheduled = false;
 
         try {
+            Engine testengine = new Engine(getDescriptor().getgApiUrl(), getDescriptor().getgApiKey());
+            int rc = testengine.doTestConnection(getDescriptor().getgApiUrl() + "/me");
+            if (rc != 200) {
+                listenerLogger.println(SR.getString("aborting.the.build"));
+                throw new hudson.AbortException(SR.getString("cannot.connect.to.application"));
+                }
+            if ((engine.getTargetName(target) == null)) {
+                listenerLogger.println(SR.getString("aborting.the.build"));
+                throw new hudson.AbortException(SR.getString("invalid.target"));
+                }
+            else if (!engine.checkScanProfileExists(profile)) {
+                listenerLogger.println(SR.getString("aborting.the.build"));
+                throw new hudson.AbortException(SR.getString("invalid.scan_type"));
+                }
             listenerLogger.println(SR.getString("starting.scan.on.target.0", getTargetName()));
             scanId = engine.startScan(profile, target, false);
+            if (scanId == null) {
+                listenerLogger.println(SR.getString("aborting.the.build"));
+                throw new hudson.AbortException(SR.getString("cannot.connect.to.application"));
+                }
             while (!scanStatus.equals(COMPLETED)) {
                 if (scanStatus.equals(PROCESSING) && !started) {
                     started = true;
@@ -166,6 +184,9 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
             listenerLogger.println(SR.getString("aborting.the.build"));
             scanAbortedExternally = true;
             throw new hudson.AbortException(SR.getString("could.not.connect.to.application.connection.refused"));
+            } catch (ConnectionException e) {
+            listenerLogger.println(SR.getString("aborting.the.build"));
+            throw new hudson.AbortException(SR.getString("cannot.connect.to.application"));
         } catch (Exception e) {
             e.printStackTrace();
             listenerLogger.println(e.getMessage());

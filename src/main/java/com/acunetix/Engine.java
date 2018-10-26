@@ -1,14 +1,16 @@
 package com.acunetix;
 
-import com.google.common.base.Charsets;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONNull;
 import net.sf.json.JSONObject;
 
 import javax.net.ssl.HttpsURLConnection;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Paths;
 import java.util.*;
 
 
@@ -68,8 +70,7 @@ public class Engine {
         return connection;
     }
 
-
-    public Resp doGet(String urlStr) throws IOException {
+    private Resp doGet(String urlStr) throws IOException {
         HttpsURLConnection connection = openConnection(urlStr);
         try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
             String inputLine;
@@ -77,7 +78,6 @@ public class Engine {
             while ((inputLine = in.readLine()) != null) {
                 resbuf.append(inputLine);
             }
-
             Resp resp = new Resp();
             resp.respCode = connection.getResponseCode();
             resp.jso = JSONObject.fromObject(resbuf.toString());
@@ -85,28 +85,12 @@ public class Engine {
         }
     }
 
-    public String doDownload(String urlStr, String savePath, String buildNumber) throws IOException {
-        HttpsURLConnection connection = openConnection(urlStr, "GET", "text/html; charset=UTF-8");
-
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
-            // get the file name
-            String cd = connection.getHeaderField("Content-Disposition");
-            String fileName = null;
-            if (cd != null && cd.contains("=")) {
-                fileName = cd.split("=")[1].trim().replaceAll("\"", "");
-            }
-            String filePath = findAvailableFileName(savePath, buildNumber, fileName);
-            String inputLine;
-            try {
-                try (FileOutputStream dfile = new FileOutputStream(filePath)) {
-                    while ((inputLine = in.readLine()) != null) {
-                        dfile.write(inputLine.getBytes(Charsets.UTF_8));
-                    }
-                }
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-            return fileName;
+    public String getUrl(String apiUrl, String downloadLink) throws MalformedURLException {
+        URL url = new URL(apiUrl);
+        if (downloadLink.matches("^(http|https)://.*$")) {
+            return downloadLink;
+        } else {
+            return url.getProtocol() + "://" + url.getAuthority() + downloadLink;
         }
     }
 
@@ -115,7 +99,7 @@ public class Engine {
         return connection.getResponseCode();
     }
 
-    public Resp doPost(String urlStr) throws IOException {
+    private Resp doPost(String urlStr) throws IOException {
         HttpsURLConnection connection = openConnection(urlStr,"POST");
         connection.setUseCaches(false);
         connection.setDoInput(true);
@@ -125,7 +109,7 @@ public class Engine {
         return resp;
     }
 
-    public Resp doPostLoc(String urlStr, String urlParams) throws IOException {
+    private Resp doPostLoc(String urlStr, String urlParams) throws IOException, NullPointerException {
         HttpsURLConnection connection = openConnection(urlStr, "POST");
         connection.setUseCaches(false);
         connection.setDoInput(true);
@@ -134,25 +118,54 @@ public class Engine {
         try (DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream())) {
             outputStream.writeBytes(urlParams);
         }
-
         String location = connection.getHeaderField("Location");
         Resp resp = new Resp();
         resp.respCode = connection.getResponseCode();
-        resp.respStr = location.substring(location.lastIndexOf("/") + 1);
+        try {
+            resp.respStr = location.substring(location.lastIndexOf("/") + 1);
+            } catch (NullPointerException e){
+            e.printStackTrace();
+                    throw new ConnectionException();
+            }
         return resp;
     }
 
-    public JSONArray getTargets() throws IOException {
-        Resp resp = doGet(apiUrl + "/targets");
-        if (resp.respCode == 200) {
-            return resp.jso.getJSONArray("targets");
+    private JSONArray getObjects(String objectName) throws IOException, NullPointerException {
+        JSONArray objects = null;
+        Integer cursor = 0;
+
+        while(cursor%100==0){
+            Resp resp = doGet(apiUrl + "/" + objectName + "?c=" + cursor);
+            if (resp.respCode != 200) {
+                throw new IOException(SR.getString("bad.response.0", resp.respCode));
+            }
+            if (objects == null){
+                objects = resp.jso.getJSONArray(objectName);
+            }
+            else {
+                objects.addAll(resp.jso.getJSONArray(objectName));
+            }
+            JSONObject pagination = resp.jso.getJSONObject("pagination");
+            if (pagination.size()>0) {
+                if (pagination.getString("next_cursor").equals("null")) {
+                    break;
+                }
+                cursor =  pagination.getInt("next_cursor");
+            }
+            else{
+                break;
+            }
         }
-        throw new IOException(SR.getString("bad.response.0", resp.respCode));
+        return objects;
     }
 
+    public JSONArray getTargets() throws IOException {
+        return getObjects("targets");
+    }
+
+
     public String getTargetName(String targetId) throws IOException {
-        JSONObject jso = doGet(apiUrl + "/targets").jso;
-        JSONArray targets = jso.getJSONArray("targets");
+        JSONArray targets = getTargets();
         for (int i = 0; i < targets.size(); i++) {
             JSONObject item = targets.getJSONObject(i);
             String target_id = item.getString("target_id");
@@ -173,11 +186,19 @@ public class Engine {
     }
 
     public JSONArray getScanningProfiles() throws IOException {
-        Resp resp = doGet(apiUrl + "/scanning_profiles");
-        if (resp.respCode == 200) {
-            return resp.jso.getJSONArray("scanning_profiles");
+        return getObjects("scanning_profiles");
+    }
+
+    public Boolean checkScanProfileExists(String profileId) throws IOException {
+        JSONArray profiles = getScanningProfiles();
+        for (int i = 0; i < profiles.size(); i++) {
+            JSONObject item = profiles.getJSONObject(i);
+            String profile_id = item.getString("profile_id");
+            if (profile_id.equals(profileId)) {
+                return true;
+            }
         }
-        throw new IOException(SR.getString("bad.response.0", resp.respCode));
+        return false;
     }
 
     public Boolean checkScanExist(String scanId) {
@@ -201,6 +222,7 @@ public class Engine {
         JSONObject jso = new JSONObject();
         jso.put("target_id", targetId);
         jso.put("profile_id", scanningProfileId);
+        jso.put("user_authorized_to_scan", "yes");
         JSONObject jsoChild = new JSONObject();
         jsoChild.put("disable", false);
         jsoChild.put("start_date", JSONNull.getInstance());
@@ -221,11 +243,7 @@ public class Engine {
 
 
     private JSONArray getScans() throws IOException {
-        Resp resp = doGet(apiUrl + "/scans");
-        if (resp.respCode == 200) {
-            return resp.jso.getJSONArray("scans");
-        }
-        throw new IOException(SR.getString("bad.response.0", resp.respCode));
+        return getObjects("scans");
     }
 
     public String getScanThreat(String scanId) throws IOException {
@@ -259,19 +277,17 @@ public class Engine {
     }
 
     public String getReportTemplateName(String reportTemplateId) throws IOException {
-        Resp resp = doGet(apiUrl + "/report_templates");
-        if (resp.respCode == 200) {
-            JSONArray jsa = resp.jso.getJSONArray("templates");
-            for (int i = 0; i < jsa.size(); i++) {
-                JSONObject item = jsa.getJSONObject(i);
-                if (item.getString("template_id").equals(reportTemplateId)) {
-                    return item.getString("name");
-                }
+        JSONArray jsa = getReportTemplates();
+        for (int i = 0; i < jsa.size(); i++) {
+            JSONObject item = jsa.getJSONObject(i);
+            if (item.getString("template_id").equals(reportTemplateId)) {
+                return item.getString("name");
             }
-            return null;
         }
-        throw new IOException(SR.getString("bad.response.0", resp.respCode));
+        return null;
     }
+
+
 
     private String getReportStatus(String reportId) throws IOException {
         JSONObject jso = doGet(apiUrl + "/reports/" + reportId).jso;
@@ -316,20 +332,6 @@ public class Engine {
         }
         return Arrays.asList(threatCategory.get(checkThreat)).contains(scanThreat);
     }
-
-    public String findAvailableFileName(String savePath, String buildNumber, String reportName) {
-        int i = 1;
-        while (true) {
-            String fileName = Paths.get(savePath, buildNumber + "_" + i + "_" + reportName).toString();
-            File f = new File(fileName);
-            if (f.exists()) {
-                i++;
-            } else {
-                return fileName;
-            }
-        }
-    }
-
 }
 
 class ConnectionException extends RuntimeException {

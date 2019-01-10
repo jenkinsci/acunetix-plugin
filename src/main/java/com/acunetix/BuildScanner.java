@@ -158,7 +158,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                     listenerLogger.println(SR.getString("aborting.the.build"));
                     throw new hudson.AbortException(SR.getString("scan.threat"));
                 }
-                Thread.sleep(1000);
+                Thread.sleep(5000);
                 scanStatus = engine.getScanStatus(scanId);
             }
             listenerLogger.println(SR.getString("scan.completed"));
@@ -196,7 +196,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                     try {
                         String status = "";
                         while (!status.equals(ABORTED) && !status.equals(COMPLETED)) {
-                            Thread.sleep(1000);
+                            Thread.sleep(5000);
                             status = engine.getScanStatus(scanId);
                         }
                         listenerLogger.println(SR.getString("the.scan.was.stopped"));
@@ -207,7 +207,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                 }
                 if (!repTemp.equals(NOREPORT) && !scanAbortedByUser && !scanAbortedExternally) {
                     listenerLogger.println(SR.getString("generating.0.report", getReportTemplateName()));
-                    Thread.sleep(1000);
+                    Thread.sleep(5000);
                     String downloadLink = engine.generateReport(scanId, repTemp, "scans");
                     listenerLogger.print("\nScan report download link: " + engine.getUrl(getDescriptor().getgApiUrl(), downloadLink) + "\n");
                 }

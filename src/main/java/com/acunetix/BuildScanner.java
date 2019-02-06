@@ -39,7 +39,6 @@ import static com.cloudbees.plugins.credentials.CredentialsProvider.lookupCreden
 
 
 public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildStep {
-
     private final String profile;
     private final String target;
     private String targetName;
@@ -158,7 +157,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                     listenerLogger.println(SR.getString("aborting.the.build"));
                     throw new hudson.AbortException(SR.getString("scan.threat"));
                 }
-                Thread.sleep(5000);
+                Thread.sleep(10000);
                 scanStatus = engine.getScanStatus(scanId);
             }
             listenerLogger.println(SR.getString("scan.completed"));
@@ -196,7 +195,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                     try {
                         String status = "";
                         while (!status.equals(ABORTED) && !status.equals(COMPLETED)) {
-                            Thread.sleep(5000);
+                            Thread.sleep(10000);
                             status = engine.getScanStatus(scanId);
                         }
                         listenerLogger.println(SR.getString("the.scan.was.stopped"));
@@ -207,7 +206,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                 }
                 if (!repTemp.equals(NOREPORT) && !scanAbortedByUser && !scanAbortedExternally) {
                     listenerLogger.println(SR.getString("generating.0.report", getReportTemplateName()));
-                    Thread.sleep(5000);
+                    Thread.sleep(10000);
                     String downloadLink = engine.generateReport(scanId, repTemp, "scans");
                     listenerLogger.print("\nScan report download link: " + engine.getUrl(getDescriptor().getgApiUrl(), downloadLink) + "\n");
                 }
@@ -272,7 +271,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
             return super.configure(req, formData);
         }
 
-        private String getgApiUrl() {
+        public String getgApiUrl() {
             return gApiUrl;
         }
 

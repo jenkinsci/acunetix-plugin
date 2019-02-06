@@ -14,7 +14,7 @@
   -->
   <f:section title="${%Acunetix}">
     <f:entry title="${%Acunetix API URL}" field="gApiUrl">
-      <f:textbox default="https://localhost:3443/api/v1" />
+      <f:textbox value="${descriptor.getgApiUrl()}" default="https://localhost:3443/api/v1"/>
     </f:entry >
     <f:entry title="${%Acunetix API Key}" field="gApiKeyID">
       <c:select/>

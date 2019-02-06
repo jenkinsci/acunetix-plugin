@@ -232,7 +232,7 @@ public class Engine {
         if (waitFinish) {
             while (!getScanStatus(scanId).equals("completed")) {
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(10000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -296,7 +296,7 @@ public class Engine {
 
     public void waitReportStatus(String reportId) throws IOException, InterruptedException {
         while (!getReportStatus(reportId).equals("completed")) {
-            Thread.sleep(5000);
+            Thread.sleep(10000);
         }
     }
 

@@ -46,17 +46,41 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
     private String reportTemplateName;
     private final String threat;
     private final Boolean stopScan;
+    private Boolean incScan;
+    private String incScanId;
 
     @DataBoundConstructor
-    public BuildScanner(String profile, String target, String repTemp, String threat, Boolean stopScan) {
+    public BuildScanner(String profile, String target, String repTemp, String threat, Boolean stopScan, Boolean incScan, String incScanId) {
         this.profile = profile;
         this.target = target;
         this.repTemp = repTemp;
         this.threat = threat;
         this.stopScan = stopScan;
-
+        this.incScan = incScan;
         try {
             Engine aac = new Engine(getDescriptor().getgApiUrl(), getDescriptor().getgApiKey());
+            if (aac.getVersion() > 12) {
+                if (incScan) {
+                    if (aac.checkScanExist(incScanId)) {
+                        if ((!aac.getScanProfile(incScanId).equals(profile)) || (!aac.getScanTarget(incScanId).equals(target))) {
+                            this.incScanId = aac.createIncScan(profile, target);
+                            aac.deleteScan(incScanId);
+                        }
+                        else {
+                            this.incScanId = incScanId;
+                        }
+                    }
+                    else {
+                        this.incScanId = aac.createIncScan(profile, target);
+                    }
+                }
+                else{
+                    this.incScanId = incScanId;
+                }
+            }
+            else {
+                this.incScan = false;
+            }
             this.targetName = aac.getTargetName(this.target);
             this.reportTemplateName = aac.getReportTemplateName(this.repTemp);
         } catch (IOException e) {
@@ -68,6 +92,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
     public String getProfile() {
         return profile;
     }
+
 
     public String getTarget() {
         return target;
@@ -91,6 +116,14 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
 
     private String getReportTemplateName() {
         return reportTemplateName;
+    }
+
+    public Boolean getIncScan() {
+        return incScan;
+    }
+
+    public String getIncScanId() {
+        return incScanId;
     }
 
 
@@ -130,11 +163,20 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                 throw new hudson.AbortException(SR.getString("invalid.scan_type"));
                 }
             listenerLogger.println(SR.getString("starting.scan.on.target.0", getTargetName()));
-            scanId = engine.startScan(profile, target, false);
-            if (scanId == null) {
-                listenerLogger.println(SR.getString("aborting.the.build"));
-                throw new hudson.AbortException(SR.getString("cannot.connect.to.application"));
+            if (this.incScan) {
+                if (!engine.checkScanExist(incScanId)) {
+                    throw new hudson.AbortException(SR.getString("could.not.find.scan.with.scanid.0.create.new", this.incScanId));
                 }
+                engine.triggerIncScan(this.incScanId, false);
+                scanId = this.incScanId;
+            }
+            else {
+                scanId = engine.startScan(profile, target, false);
+                if (scanId == null) {
+                    listenerLogger.println(SR.getString("aborting.the.build"));
+                    throw new hudson.AbortException(SR.getString("cannot.connect.to.application"));
+                }
+            }
             while (!scanStatus.equals(COMPLETED)) {
                 if (scanStatus.equals(PROCESSING) && !started) {
                     started = true;
@@ -382,6 +424,17 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
             return result
                     .includeMatchingAs(ACL.SYSTEM, Jenkins.getInstance(), StringCredentials.class,
                             Collections.<DomainRequirement> emptyList(), CredentialsMatchers.allOf(CredentialsMatchers.instanceOf(StringCredentials.class)));
+        }
+
+        public Boolean testVersion() {
+            Boolean res = false;
+            try {
+                Engine aac = new Engine(getgApiUrl(), getgApiKey());
+                res = aac.getVersion() > 12;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return res;
         }
     }
 }

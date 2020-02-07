@@ -11,11 +11,17 @@
       When submitted, it will be passed to the corresponding constructor parameter.
     -->
     <f:entry title="${%Scan Type}" field="profile">
-    <f:select/>
+        <f:select/>
     </f:entry>
     <f:entry title="${%Scan Target }" field="target">
         <f:select/>
     </f:entry>
+    <j:if test="${descriptor.testVersion()}">
+        <f:entry field="incScan">
+            <f:checkbox field="incScan" default="false"/>
+            ${%Incremental scan}
+        </f:entry>
+    </j:if>
     <f:entry title="${%Fail the build if threat level is }" field="threat">
         <f:select />
     </f:entry>
@@ -26,4 +32,8 @@
     <f:entry title="${%Generate Report }" field="repTemp">
         <f:select />
     </f:entry>
+    <f:invisibleEntry>
+        <f:textbox field="incScanId">
+        </f:textbox>
+    </f:invisibleEntry>
 </j:jelly>

@@ -51,7 +51,6 @@ public class Engine {
         JSONObject jso = null;
     }
 
-
     private HttpsURLConnection openConnection(String endpoint, String method) throws IOException {
         return openConnection(endpoint, method, "application/json; charset=UTF-8");
     }
@@ -109,6 +108,16 @@ public class Engine {
         return resp;
     }
 
+    private Resp doDelete(String urlStr) throws IOException {
+        HttpsURLConnection connection = openConnection(urlStr,"DELETE");
+        connection.setUseCaches(false);
+        connection.setDoInput(true);
+        connection.setDoOutput(true);
+        Resp resp = new Resp();
+        resp.respCode = connection.getResponseCode();
+        return resp;
+    }
+
     private Resp doPostLoc(String urlStr, String urlParams) throws IOException, NullPointerException {
         HttpsURLConnection connection = openConnection(urlStr, "POST");
         connection.setUseCaches(false);
@@ -132,30 +141,41 @@ public class Engine {
 
     private JSONArray getObjects(String objectName) throws IOException, NullPointerException {
         JSONArray objects = null;
-        Integer cursor = 0;
+        JSONArray cursors;
 
-        while(cursor%100==0){
-            Resp resp = doGet(apiUrl + "/" + objectName + "?c=" + cursor);
-            if (resp.respCode != 200) {
+        Resp resp = doGet(apiUrl + "/" + objectName);
+        if (resp.respCode != 200) {
                 throw new IOException(SR.getString("bad.response.0", resp.respCode));
             }
-            if (objects == null){
-                objects = resp.jso.getJSONArray(objectName);
-            }
-            else {
-                objects.addAll(resp.jso.getJSONArray(objectName));
-            }
+            objects = resp.jso.getJSONArray(objectName);
             JSONObject pagination = resp.jso.getJSONObject("pagination");
-            if (pagination.size()>0) {
-                if (pagination.getString("next_cursor").equals("null")) {
-                    break;
+            if (pagination.containsKey("next_cursor")) {
+                Integer cursor = 0;
+                while ((cursor >= 100) || (cursor%100>0)) {
+                    resp = doGet(apiUrl + "/" + objectName + "?c=" + cursor);
+                    objects.addAll(resp.jso.getJSONArray(objectName));
+                    pagination = resp.jso.getJSONObject("pagination");
+                    if (pagination.getString("next_cursor").equals("null")) {
+                        break;
+                    }
+                    cursor = pagination.getInt("next_cursor");
                 }
-                cursor =  pagination.getInt("next_cursor");
             }
             else{
-                break;
+                if (pagination.size() > 0) {
+                    cursors = pagination.getJSONArray("cursors");
+                    String cursor;
+                    while (cursors.size() > 2) {
+                        cursors = pagination.getJSONArray("cursors");
+                        cursor = cursors.getString(1);
+                        resp = doGet(apiUrl + "/" + objectName + "?c=" + cursor);
+                        objects.addAll(resp.jso.getJSONArray(objectName));
+                        pagination = resp.jso.getJSONObject("pagination");
+                    }
+                }
             }
-        }
+
+//        }
         return objects;
     }
 
@@ -241,8 +261,37 @@ public class Engine {
         return scanId;
     }
 
+    public String createIncScan(String scanningProfileId, String targetId) throws IOException {
+        JSONObject jso = new JSONObject();
+        jso.put("target_id", targetId);
+        jso.put("profile_id", scanningProfileId);
+        jso.put("user_authorized_to_scan", "yes");
+        jso.put("incremental", true);
+        JSONObject jsoChild = new JSONObject();
+        jsoChild.put("disable", false);
+        jsoChild.put("start_date", JSONNull.getInstance());
+        jsoChild.put("time_sensitive", false);
+        jsoChild.put("triggerable", true);
+        jso.put("schedule", jsoChild);
+        String scanId = doPostLoc(apiUrl + "/scans", jso.toString()).respStr;
+        return scanId;
+    }
 
-    private JSONArray getScans() throws IOException {
+    public String triggerIncScan(String scanId, Boolean waitFinish) throws IOException {
+        String resScanId = doPost(apiUrl + "/scans/" + scanId + "/trigger").respStr;
+        if (waitFinish) {
+            while (!getScanStatus(scanId).equals("completed")) {
+                try {
+                    Thread.sleep(10000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return resScanId;
+    }
+
+    public JSONArray getScans() throws IOException {
         return getObjects("scans");
     }
 
@@ -251,10 +300,19 @@ public class Engine {
         return jso.getJSONObject("current_session").getString("threat");
     }
 
-
     public String getScanStatus(String scanId) throws IOException {
         JSONObject jso = doGet(apiUrl + "/scans/" + scanId).jso;
         return jso.getJSONObject("current_session").getString("status");
+    }
+
+    public String getScanProfile(String scanId) throws IOException {
+        JSONObject jso = doGet(apiUrl + "/scans/" + scanId).jso;
+        return jso.getString("profile_id");
+    }
+
+    public String getScanTarget(String scanId) throws IOException {
+        JSONObject jso = doGet(apiUrl + "/scans/" + scanId).jso;
+        return jso.getString("target_id");
     }
 
     public void stopScan(String scanId) {
@@ -263,6 +321,14 @@ public class Engine {
             if (resp.respCode != 204) {
                 throw new IOException(SR.getString("bad.response.0", resp.respCode));
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteScan(String scanId) {
+        try {
+            doDelete(apiUrl + "/scans/" + scanId);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -286,8 +352,6 @@ public class Engine {
         }
         return null;
     }
-
-
 
     private String getReportStatus(String reportId) throws IOException {
         JSONObject jso = doGet(apiUrl + "/reports/" + reportId).jso;
@@ -331,6 +395,11 @@ public class Engine {
             return false;
         }
         return Arrays.asList(threatCategory.get(checkThreat)).contains(scanThreat);
+    }
+
+    public Integer getVersion() throws IOException {
+        JSONObject jso = doGet(apiUrl + "/info").jso;
+        return jso.getInt("major_version");
     }
 }
 

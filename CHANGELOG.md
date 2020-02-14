@@ -215,7 +215,7 @@ configured target or profile have been deleted in main application
 
 1.  -   Saved API URL is not loaded and shown in Jenkins system page
 
-##  Version 1.2.4 (February 07, 2020)
+##  Version 1.2.5 (February 14, 2020)
 
 1.  -   Compatibility with Acunetix version 13
     -   New feature: incremental scans

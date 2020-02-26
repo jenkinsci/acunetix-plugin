@@ -93,9 +93,7 @@ To configure the Acunetix Jenkins Plugin:
         build if threat level is* is met. This is setting is enabled by
         default.
     5.  **Generate Report** – Choose to a report to generate upon
-        completion of the scan. The report will be accessible inside of
-        Acunetix and a download link will be provided within console
-        output log
+        completion of the scan. The report will be saved in project workspace
 4.  Click *Save*
 
 #  FAQs
@@ -154,8 +152,9 @@ generated from within the Acunetix UI.
 
 1.  **What happens to reports generated from Jenkins?**
 
-Reports generated from Jenkins are generated on the main application and
-a download link is provided in the console output
+Reports generated from Jenkins are generated on the main application and then downloaded and saved in project workspace.
+From the workspace the report can be archived within job folder with post-build action "Archive the artifacts" and 
+delete the report from workspace
 
 1.  **How do I disable or remove the Acunetix Jenkins Plugin**
 

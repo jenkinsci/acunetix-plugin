@@ -153,8 +153,7 @@ generated from within the Acunetix UI.
 1.  **What happens to reports generated from Jenkins?**
 
 Reports generated from Jenkins are generated on the main application and then downloaded and saved in project workspace.
-From the workspace the report can be archived within job folder with post-build action "Archive the artifacts" and 
-delete the report from workspace
+The report can be archived within job folder with post-build action "Archive the artifacts" and deleted from workspace
 
 1.  **How do I disable or remove the Acunetix Jenkins Plugin**
 

@@ -181,6 +181,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                 if (scanStatus.equals(PROCESSING) && !started) {
                     started = true;
                     listenerLogger.println(SR.getString("scan.started"));
+                    listenerLogger.println(SR.getString("view.scan.status") + getDescriptor().getgApiUrl().replace("api/v1", "#") + "/scans/" + scanId + "/info");
                 }
                 if (scanStatus.equals(SCHEDULED) && !bScheduled) {
                     bScheduled = true;
@@ -195,7 +196,9 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                 scanThreat = engine.getScanThreat(scanId);
                 if (engine.checkThreat(threat, scanThreat)) {
                     bThreat = true;
-                    listenerLogger.println(SR.getString("scan.threat.0.1", Engine.getThreatName(scanThreat), this.getThreat()));
+                    //listenerLogger.println(SR.getString("scan.threat.0.1", Engine.getThreatName(scanThreat), this.getThreat()));
+                    listenerLogger.println(SR.getString("scan.threat.0", Engine.getThreatName(scanThreat)));
+                    listenerLogger.println(SR.getString("check.vulnerabilities.found") + getDescriptor().getgApiUrl().replace("api/v1", "#") + "/scans/" + scanId + "/vulnerabilities");
                     listenerLogger.println(SR.getString("aborting.the.build"));
                     throw new hudson.AbortException(SR.getString("scan.threat"));
                 }
@@ -250,7 +253,8 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                     listenerLogger.println(SR.getString("generating.0.report", getReportTemplateName()));
                     Thread.sleep(10000);
                     String downloadLink = engine.generateReport(scanId, repTemp, "scans");
-                    listenerLogger.print("\nScan report download link: " + engine.getUrl(getDescriptor().getgApiUrl(), downloadLink) + "\n");
+                    String dfName = engine.doDownload(engine.getUrl(getDescriptor().getgApiUrl(), downloadLink), workspace.getRemote());
+                    listenerLogger.print(SR.getString("report.saved.in.workspace") + dfName + "\n");
                 }
             } catch (InterruptedException | IOException e) {
                 e.printStackTrace();

@@ -1,16 +1,15 @@
 package com.acunetix;
 
+import com.google.common.base.Charsets;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONNull;
 import net.sf.json.JSONObject;
 
 import javax.net.ssl.HttpsURLConnection;
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.*;
 
 
@@ -401,6 +400,33 @@ public class Engine {
         JSONObject jso = doGet(apiUrl + "/info").jso;
         return jso.getInt("major_version");
     }
+
+
+    public String doDownload(String urlSource, String savePath) throws IOException {
+        HttpsURLConnection connection = openConnection(urlSource);
+
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
+            // get the file name
+            String cd = connection.getHeaderField("Content-Disposition");
+            String fileName = null;
+            if (cd != null && cd.contains("=")) {
+                fileName = "Acunetix_" + cd.split("=")[1].trim().replaceAll("\"", "");
+            }
+            String filePath = Paths.get(savePath, fileName).toString();
+            String inputLine;
+            try {
+                try (FileOutputStream dfile = new FileOutputStream(filePath)) {
+                    while ((inputLine = in.readLine()) != null) {
+                        dfile.write(inputLine.getBytes(Charsets.UTF_8));
+                    }
+                }
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            return fileName;
+        }
+    }
+
 }
 
 class ConnectionException extends RuntimeException {

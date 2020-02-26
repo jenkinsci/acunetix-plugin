@@ -27,30 +27,35 @@ configured target or profile have been deleted in main application
 
       Bug fixes:
 
-1.  -   Plugin retrieve only first 100 targets
-    -   Scans can now be executed on the online version of the scanner
-    -   Reports cannot be downloaded. Now links to the reports will be
+ -   Plugin retrieve only first 100 targets
+ -   Scans can now be executed on the online version of the scanner
+ -   Reports cannot be downloaded. Now links to the reports will be
         provided on the output.  
 
 ##  Version 1.2.1 (January 10, 2019)
 
       Bug fixes:
 
-1.  -   Fixed 429 error when pairing with online build
+ -   Fixed 429 error when pairing with online build
 
 ##  Version 1.2.2 (January 18, 2019)
 
       Bug fixes:
 
-1.  -   Fixed 429 error for reports
+ -   Fixed 429 error for reports
 
 ##  Version 1.2.3 (February 06, 2019)
 
       Bug fixes:
 
-1.  -   Saved API URL is not loaded and shown in Jenkins system page
+ -   Saved API URL is not loaded and shown in Jenkins system page
 
 ##  Version 1.2.5 (February 14, 2020)
 
-1.  -   Compatibility with Acunetix version 13
-    -   New feature: incremental scans
+  -   Compatibility with Acunetix version 13
+  -   New feature: incremental scans
+
+##  Version 1.2.6 (February 26, 2020)
+
+  -   Save reports in workspace
+  -   Improved logging

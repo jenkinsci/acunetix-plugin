@@ -60,7 +60,7 @@ configured target or profile have been deleted in main application
   -   Save reports in workspace
   -   Improved logging
   
-##  Version 1.2.7 (April 21, 2020)
+##  Version 1.2.8 (April 21, 2020)
 
   -   Fixed compatibility with online version
   -   Fix: report was generated even when the scan could not be performed 

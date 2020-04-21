@@ -32,6 +32,10 @@
     <f:entry title="${%Generate Report }" field="repTemp">
         <f:select />
     </f:entry>
+    <f:entry field="svRep">
+        <f:checkbox field="svRep" default="false"/>
+        ${%Save report in workspace}
+    </f:entry>
     <f:invisibleEntry>
         <f:textbox field="incScanId">
         </f:textbox>

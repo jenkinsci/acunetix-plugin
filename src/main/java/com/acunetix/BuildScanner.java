@@ -48,14 +48,17 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
     private final Boolean stopScan;
     private Boolean incScan;
     private String incScanId;
+    public final Boolean svRep;
+
 
     @DataBoundConstructor
-    public BuildScanner(String profile, String target, String repTemp, String threat, Boolean stopScan, Boolean incScan, String incScanId) {
+    public BuildScanner(String profile, String target, String repTemp, String threat, Boolean stopScan, Boolean svRep, Boolean incScan, String incScanId) {
         this.profile = profile;
         this.target = target;
         this.repTemp = repTemp;
         this.threat = threat;
         this.stopScan = stopScan;
+        this.svRep = svRep;
         this.incScan = incScan;
         try {
             Engine aac = new Engine(getDescriptor().getgApiUrl(), getDescriptor().getgApiKey());
@@ -249,12 +252,15 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                         listenerLogger.println(e.getMessage());
                     }
                 }
-                if (!repTemp.equals(NOREPORT) && !scanAbortedByUser && !scanAbortedExternally) {
+                if (!repTemp.equals(NOREPORT) && scanId != null && !scanAbortedByUser && !scanAbortedExternally) {
                     listenerLogger.println(SR.getString("generating.0.report", getReportTemplateName()));
                     Thread.sleep(10000);
                     String downloadLink = engine.generateReport(scanId, repTemp, "scans");
+                    listenerLogger.print("Scan report download link: " + engine.getUrl(getDescriptor().getgApiUrl(), downloadLink) + "\n");
                     String dfName = engine.doDownload(engine.getUrl(getDescriptor().getgApiUrl(), downloadLink), workspace.getRemote());
-                    listenerLogger.print(SR.getString("report.saved.in.workspace") + dfName + "\n");
+                    if (svRep) {
+                        listenerLogger.print(SR.getString("report.saved.in.workspace") + dfName + "\n");
+                    }
                 }
             } catch (InterruptedException | IOException e) {
                 e.printStackTrace();

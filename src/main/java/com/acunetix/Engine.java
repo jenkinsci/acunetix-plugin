@@ -9,6 +9,7 @@ import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -132,8 +133,8 @@ public class Engine {
         try {
             resp.respStr = location.substring(location.lastIndexOf("/") + 1);
             } catch (NullPointerException e){
-            e.printStackTrace();
-                    throw new ConnectionException();
+                e.printStackTrace();
+                throw new ConnectionException();
             }
         return resp;
     }
@@ -397,14 +398,19 @@ public class Engine {
     }
 
     public Integer getVersion() throws IOException {
-        JSONObject jso = doGet(apiUrl + "/info").jso;
-        return jso.getInt("major_version");
+        if (apiUrl.matches(":\\d+")) {
+            JSONObject jso = doGet(apiUrl + "/info").jso;
+            return jso.getInt("major_version");
+        }
+        else {
+            return 13;
+        }
     }
 
 
     public String doDownload(String urlSource, String savePath) throws IOException {
-        HttpsURLConnection connection = openConnection(urlSource);
-
+        URLConnection connection = new URL(urlSource).openConnection();
+        connection.addRequestProperty("User-Agent", "Mozilla");
         try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
             // get the file name
             String cd = connection.getHeaderField("Content-Disposition");

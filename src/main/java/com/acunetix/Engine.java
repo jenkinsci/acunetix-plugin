@@ -165,12 +165,12 @@ public class Engine {
                 if (pagination.size() > 0) {
                     cursors = pagination.getJSONArray("cursors");
                     String cursor;
-                    while (cursors.size() > 2) {
-                        cursors = pagination.getJSONArray("cursors");
+                    while (cursors.size() > 1) {
                         cursor = cursors.getString(1);
                         resp = doGet(apiUrl + "/" + objectName + "?c=" + cursor);
                         objects.addAll(resp.jso.getJSONArray(objectName));
                         pagination = resp.jso.getJSONObject("pagination");
+                        cursors = pagination.getJSONArray("cursors");
                     }
                 }
             }

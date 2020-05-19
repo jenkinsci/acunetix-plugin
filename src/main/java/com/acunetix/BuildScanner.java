@@ -394,13 +394,11 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
             for (int i = 0; i < jsa.size(); i++) {
                 JSONObject item = jsa.getJSONObject(i);
                 String group = item.getString("group");
-                if (group.equals("Standard Reports")) {
-                    String reportTemplate_name = item.getString("name");
-                    String template_id = item.getString("template_id");
-                    if (!reportTemplate_name.equals("Scan Comparison")) {
-                        items.add(reportTemplate_name, template_id);
+                String reportTemplate_name = item.getString("name");
+                String template_id = item.getString("template_id");
+                if (!reportTemplate_name.equals("Scan Comparison")) {
+                    items.add(reportTemplate_name, template_id);
                     }
-                }
             }
             return items;
         }

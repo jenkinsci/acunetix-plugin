@@ -68,4 +68,6 @@ configured target or profile have been deleted in main application
   -   Re-added report download link in console
   -   Report save to workspace configurable through a checkbox
 
-  
+##  Version 1.2.9 (May 19, 2020)  
+
+  -   Provide all report templates when choosing for a report type. Before were available only standard reports

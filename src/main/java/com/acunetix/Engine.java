@@ -1,16 +1,16 @@
 package com.acunetix;
 
-import com.google.common.base.Charsets;
+import hudson.FilePath;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONNull;
 import net.sf.json.JSONObject;
 
 import javax.net.ssl.HttpsURLConnection;
-import java.io.*;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.nio.file.Paths;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.*;
 import java.util.*;
 
 
@@ -26,9 +26,6 @@ public class Engine {
     }
 
     public Engine(String apiUrl, String apiKey) {
-//        System.setProperty("proxySet", "true");
-//        System.getProperty("proxySet");
-
         this.apiUrl = apiUrl;
         this.apiKey = apiKey;
     }
@@ -66,6 +63,7 @@ public class Engine {
         connection.setRequestProperty("Content-Type", contentType);
         connection.setRequestProperty("User-Agent", "Mozilla/5.0");
         connection.addRequestProperty("X-AUTH", apiKey);
+
         return connection;
     }
 
@@ -123,7 +121,6 @@ public class Engine {
         connection.setUseCaches(false);
         connection.setDoInput(true);
         connection.setDoOutput(true);
-
         try (DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream())) {
             outputStream.writeBytes(urlParams);
         }
@@ -407,31 +404,22 @@ public class Engine {
         }
     }
 
-
-    public String doDownload(String urlSource, String savePath) throws IOException {
+    public String getReportFileName(String urlSource) throws IOException {
         URLConnection connection = new URL(urlSource).openConnection();
         connection.addRequestProperty("User-Agent", "Mozilla");
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"))) {
-            // get the file name
-            String cd = connection.getHeaderField("Content-Disposition");
-            String fileName = null;
-            if (cd != null && cd.contains("=")) {
-                fileName = "Acunetix_" + cd.split("=")[1].trim().replaceAll("\"", "");
-            }
-            String filePath = Paths.get(savePath, fileName).toString();
-            String inputLine;
-            try {
-                try (FileOutputStream dfile = new FileOutputStream(filePath)) {
-                    while ((inputLine = in.readLine()) != null) {
-                        dfile.write(inputLine.getBytes(Charsets.UTF_8));
-                    }
-                }
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-            return fileName;
+        String cd = connection.getHeaderField("Content-Disposition");
+        String fileName = null;
+        if (cd != null && cd.contains("=")) {
+            fileName = "Acunetix_" + cd.split("=")[1].trim().replaceAll("\"", "");
         }
+        return fileName;
     }
+
+    public void doDownload(String urlSource, FilePath savePath) throws IOException, InterruptedException {
+        URL url = new URL(urlSource);
+        savePath.copyFrom(url);
+    }
+
 
 }
 

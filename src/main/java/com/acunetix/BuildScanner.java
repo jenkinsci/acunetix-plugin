@@ -12,6 +12,7 @@ import hudson.model.AbstractProject;
 import hudson.model.Item;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.remoting.VirtualChannel;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.util.FormValidation;
@@ -256,10 +257,18 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                     listenerLogger.println(SR.getString("generating.0.report", getReportTemplateName()));
                     Thread.sleep(10000);
                     String downloadLink = engine.generateReport(scanId, repTemp, "scans");
-                    listenerLogger.print("Scan report download link: " + engine.getUrl(getDescriptor().getgApiUrl(), downloadLink) + "\n");
-                    String dfName = engine.doDownload(engine.getUrl(getDescriptor().getgApiUrl(), downloadLink), workspace.getRemote());
+                    listenerLogger.println(SR.getString("scan.report.download.link.0", engine.getUrl(getDescriptor().getgApiUrl(), downloadLink)));
                     if (svRep) {
-                        listenerLogger.print(SR.getString("report.saved.in.workspace") + dfName + "\n");
+                        VirtualChannel channel = workspace.getChannel();
+                        String reportName = engine.getReportFileName(engine.getUrl(getDescriptor().getgApiUrl(), downloadLink));
+                        FilePath reportFile = new hudson.FilePath(channel, workspace.getRemote() + "/" + reportName);
+                        engine.doDownload(engine.getUrl(getDescriptor().getgApiUrl(), downloadLink), reportFile);
+                        if (reportFile.exists()) {
+                            String savedReportUrl = Jenkins.getInstance().getRootUrl() + build.getParent().getUrl() + "ws/" + reportName;
+                            listenerLogger.println(SR.getString("report.saved.in.workspace.0", reportName));
+                        } else {
+                            listenerLogger.println(SR.getString("invalid.report.file.path.0", reportName));
+                        }
                     }
                 }
             } catch (InterruptedException | IOException e) {
@@ -289,6 +298,8 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
             try {
                 if (ApiUrl.length() == 0)
                     return FormValidation.error(SR.getString("please.set.the.api.url"));
+                if (!ApiUrl.contains("/api/v1"))
+                    return FormValidation.error(SR.getString("invalid.api.url"));
                 Engine apio = new Engine(ApiUrl, getgApiKey());
                 int respCode = apio.doTestConnection(ApiUrl + "/me");
                 if (respCode == 200) {

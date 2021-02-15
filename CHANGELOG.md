@@ -72,7 +72,7 @@ configured target or profile have been deleted in main application
 
   -   Provide all report templates when choosing for a report type. Before were available only standard reports
 
-##  Version 1.2.10 (February 09, 2021)  
+##  Version 1.2.11 (February 15, 2021)  
 
   -   Fix: use correct workspace on slaves
   -   Fix: Comprehensive report not downloaded properly

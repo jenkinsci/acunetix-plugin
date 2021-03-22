@@ -22,6 +22,10 @@
             ${%Incremental scan}
         </f:entry>
     </j:if>
+    <f:entry field="stopTargetScans">
+        <f:checkbox field="stopTargetScans" default="false"/>
+        ${%Stop scans on the Target before starting a new scan}
+    </f:entry>
     <f:entry title="${%Fail the build if threat level is }" field="threat">
         <f:select />
     </f:entry>

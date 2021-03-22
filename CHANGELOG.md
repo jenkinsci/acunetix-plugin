@@ -76,3 +76,7 @@ configured target or profile have been deleted in main application
 
   -   Fix: use correct workspace on slaves
   -   Fix: Comprehensive report not downloaded properly
+  
+ ##  Version 1.2.12 (March 22, 2021)  
+ 
+   -  Added option to stop scans on the Target before starting a new scan

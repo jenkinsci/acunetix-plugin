@@ -10,7 +10,9 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.*;
 
 
@@ -18,11 +20,18 @@ public class Engine {
     private String apiUrl;
     private String apiKey;
     private static final Map<String, String[]> threatCategory = new HashMap<>();
-
     static {
         threatCategory.put("High", new String[]{"3"});
         threatCategory.put("Medium", new String[]{"3", "2"});
         threatCategory.put("Low", new String[]{"3", "2", "1"});
+    }
+    private static final Map<String, String[]> scan_status_categories = new HashMap<>();
+    static {
+        scan_status_categories.put("All", new String[]{"scheduled", "queued", "starting", "processing", "aborting",
+                "aborted", "pausing", "paused", "completed", "failed"});
+        scan_status_categories.put("Active", new String[]{"scheduled", "queued", "starting", "processing"});
+        scan_status_categories.put("Finished", new String[]{"aborting","aborted", "pausing", "paused", "completed",
+                "failed"});
     }
 
     public Engine(String apiUrl, String apiKey) {
@@ -127,6 +136,9 @@ public class Engine {
         String location = connection.getHeaderField("Location");
         Resp resp = new Resp();
         resp.respCode = connection.getResponseCode();
+        if (400 <= resp.respCode && resp.respCode <= 599) {
+            throw new RuntimeException("HTTP request failed with status code " + resp.respCode);
+        }
         try {
             resp.respStr = location.substring(location.lastIndexOf("/") + 1);
             } catch (NullPointerException e){
@@ -330,6 +342,20 @@ public class Engine {
             e.printStackTrace();
         }
     }
+
+    public void stopTargetScans(String targetId) throws IOException {
+        JSONArray scans = getScans();
+        for (int i=0; i < scans.size(); i++) {
+            JSONObject item = scans.getJSONObject(i);
+            if (item.getString("target_id").equals(targetId)) {
+                String status = item.getJSONObject("current_session").getString("status");
+                if(Arrays.asList(scan_status_categories.get("Active")).contains(status)) {
+                    stopScan(item.getString("scan_id"));
+                }
+            }
+        }
+    }
+
 
     public JSONArray getReportTemplates() throws IOException {
         Resp resp = doGet(apiUrl + "/report_templates");

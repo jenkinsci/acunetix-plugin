@@ -31,7 +31,7 @@
   </properties>
 
   <name>Acunetix</name>
-  <description>Integration of Acunetix scanner with Jenkins</description>
+  <description>Plugin for starting Acunetix Premium scans</description>
   <url>https://github.com/jenkinsci/acunetix-plugin/blob/master/README.md</url>
 
   <licenses>

@@ -49,17 +49,19 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
     private final Boolean stopScan;
     private Boolean incScan;
     private String incScanId;
-    public final Boolean svRep;
+    private final Boolean svRep;
+    private final Boolean stopTargetScans;
 
 
     @DataBoundConstructor
-    public BuildScanner(String profile, String target, String repTemp, String threat, Boolean stopScan, Boolean svRep, Boolean incScan, String incScanId) {
+    public BuildScanner(String profile, String target, String repTemp, String threat, Boolean stopScan, Boolean svRep, Boolean incScan, String incScanId, Boolean stopTargetScans) {
         this.profile = profile;
         this.target = target;
         this.repTemp = repTemp;
         this.threat = threat;
         this.stopScan = stopScan;
         this.svRep = svRep;
+        this.stopTargetScans = stopTargetScans;
         this.incScan = incScan;
         try {
             Engine aac = new Engine(getDescriptor().getgApiUrl(), getDescriptor().getgApiKey());
@@ -130,6 +132,10 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
         return incScanId;
     }
 
+    public Boolean getStopTargetScans() {
+        return stopTargetScans;
+    }
+
 
     @Override
     public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws hudson.AbortException, InterruptedException {
@@ -167,6 +173,10 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                 throw new hudson.AbortException(SR.getString("invalid.scan_type"));
                 }
             listenerLogger.println(SR.getString("starting.scan.on.target.0", getTargetName()));
+            if (this.stopTargetScans)
+            {
+                engine.stopTargetScans(target);
+            }
             if (this.incScan) {
                 if (!engine.checkScanExist(incScanId)) {
                     throw new hudson.AbortException(SR.getString("could.not.find.scan.with.scanid.0.create.new", this.incScanId));

@@ -80,3 +80,7 @@ configured target or profile have been deleted in main application
  ##  Version 1.2.12 (March 22, 2021)  
  
    -  Added option to stop scans on the Target before starting a new scan
+
+ ##  Version 1.2.13 (March 29, 2021)  
+ 
+   -  Changed description

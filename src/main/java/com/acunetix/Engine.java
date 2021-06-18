@@ -230,6 +230,24 @@ public class Engine {
         return false;
     }
 
+    public Boolean checkIncScanExist(String target_id, String profile_id) {
+        try {
+            JSONArray scans = getScans();
+            for (int i = 0; i < scans.size(); i++) {
+                JSONObject item = scans.getJSONObject(i);
+                if (item.getBoolean("incremental")) {
+                    if ((item.getString("target_id").equals(target_id)) && (item.getString("profile_id").equals(profile_id))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        catch (IOException e){
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     public Boolean checkScanExist(String scanId) {
         try {
             JSONArray scans = getScans();
@@ -246,6 +264,25 @@ public class Engine {
         }
         return false;
     }
+
+    public String getIncScanId(String target_id, String profile_id) {
+        try {
+            JSONArray scans = getScans();
+            for (int i = 0; i < scans.size(); i++) {
+                JSONObject item = scans.getJSONObject(i);
+                if (item.getBoolean("incremental")) {
+                    if ((item.getString("target_id").equals(target_id)) && (item.getString("profile_id").equals(profile_id))) {
+                        return item.getString("scan_id");
+                    }
+                }
+            }
+        }
+        catch (IOException e){
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 
     public String startScan(String scanningProfileId, String targetId, Boolean waitFinish) throws IOException {
         JSONObject jso = new JSONObject();

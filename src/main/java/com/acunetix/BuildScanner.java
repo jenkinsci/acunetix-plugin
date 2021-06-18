@@ -67,14 +67,8 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
             Engine aac = new Engine(getDescriptor().getgApiUrl(), getDescriptor().getgApiKey());
             if (aac.getVersion() > 12) {
                 if (incScan) {
-                    if (aac.checkScanExist(incScanId)) {
-                        if ((!aac.getScanProfile(incScanId).equals(profile)) || (!aac.getScanTarget(incScanId).equals(target))) {
-                            this.incScanId = aac.createIncScan(profile, target);
-                            aac.deleteScan(incScanId);
-                        }
-                        else {
-                            this.incScanId = incScanId;
-                        }
+                    if (aac.checkIncScanExist(target, profile)) {
+                        this.incScanId = aac.getIncScanId(target,profile);
                     }
                     else {
                         this.incScanId = aac.createIncScan(profile, target);
@@ -136,6 +130,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
         return stopTargetScans;
     }
 
+    public Boolean getSvRep() { return svRep; }
 
     @Override
     public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws hudson.AbortException, InterruptedException {

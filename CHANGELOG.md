@@ -84,3 +84,8 @@ configured target or profile have been deleted in main application
  ##  Version 1.2.13 (March 29, 2021)  
  
    -  Changed description
+
+ ##  Version 1.2.14 (June 28, 2021)  
+ 
+   -  Fix: error trying to make pipeline script with Snippet Generator
+   -  Fix: incremental scan added multiple times 

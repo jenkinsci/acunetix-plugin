@@ -21,7 +21,7 @@
   </parent>
   <groupId>com.acunetix</groupId>
   <artifactId>acunetix</artifactId>
-  <version>1.2.14-SNAPSHOT</version>
+  <version>1.2.14</version>
   <packaging>hpi</packaging>
 
   <properties>
@@ -52,7 +52,7 @@
     <connection>scm:git:git://github.com/jenkinsci/acunetix-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/acunetix-plugin.git</developerConnection>
     <url>http://github.com/jenkinsci/acunetix-plugin</url>
-    <tag>HEAD</tag>
+    <tag>acunetix-1.2.14</tag>
   </scm>
   <repositories>
     <repository>

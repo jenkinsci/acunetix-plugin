@@ -140,6 +140,7 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
         final String SCHEDULED = "scheduled";
         final String QUEUED = "queued";
         final String NOREPORT = "no_report";
+        final String FAILED = "failed";
         final PrintStream listenerLogger = listener.getLogger();
 
         Engine engine = new Engine(getDescriptor().getgApiUrl(), getDescriptor().getgApiKey());
@@ -200,6 +201,12 @@ public class BuildScanner extends hudson.tasks.Builder implements SimpleBuildSte
                     scanAbortedExternally = true;
                     listenerLogger.println(SR.getString("aborting.the.build"));
                     throw new hudson.AbortException(SR.getString("scan.aborted.outside"));
+                }
+
+                if (scanStatus.equals(FAILED)) {
+                    scanAbortedExternally = true;
+                    listenerLogger.println(SR.getString("scan.failed"));
+                    throw new hudson.AbortException(SR.getString("scan.failed"));                    
                 }
 
                 scanThreat = engine.getScanThreat(scanId);
